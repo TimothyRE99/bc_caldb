@@ -1,0 +1,1 @@
+recursive-include bc_caldb/data *.fits.gz

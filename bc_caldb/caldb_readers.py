@@ -5,17 +5,18 @@ expose them for use in python.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from os import PathLike
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 
 from bc_caldb.caldb_generators import (
+    GenerateBadpix,
     GenerateCalDB,
     GenerateCodedMask,
     GenerateTeldef,
 )
-from bc_caldb.constants import CURRENT_CALDB_VER, LIST_KEYWORDS, LIST_KEYWORD_SEP
+from bc_caldb.constants import CURRENT_CALDB_VER, LIST_KEYWORD_SEP, LIST_KEYWORDS
 
 
 @dataclass(frozen=True)
@@ -230,3 +231,36 @@ class CodedMask(CalDB):
             the most recent version.
         """
         return super().from_caldb_version(GenerateCodedMask, caldb_version)
+
+
+@dataclass(frozen=True)
+class Badpix(CalDB):
+    """Reader for BlackCAT Badpix CalDB. Exposes the CalDB keywords to
+    be used in python.
+    """
+
+    ccls0001: str
+    ccnm0001: str
+    cdtp0001: str
+    cvsd0001: str
+    cvst0001: str
+    cdes0001: str
+
+    breason: str
+    goodval: int
+
+    badpix_0: npt.NDArray[np.bool_]
+    badpix_1: npt.NDArray[np.bool_]
+    badpix_2: npt.NDArray[np.bool_]
+    badpix_3: npt.NDArray[np.bool_]
+
+    @classmethod
+    def from_caldb_version(cls, caldb_version: str = CURRENT_CALDB_VER):
+        """Use a BlackCAT CalDB generator to generate an Aperture
+        dataclass.
+
+        Arguments:
+            caldb_version: BlackCAT CalDB version string. Defaults to
+            the most recent version.
+        """
+        return super().from_caldb_version(GenerateBadpix, caldb_version)

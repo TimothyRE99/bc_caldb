@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, UTC
 from enum import StrEnum
 from functools import cached_property
+from importlib import resources
 from os import PathLike
 from pathlib import Path
 from typing import Any, Optional
@@ -35,11 +36,51 @@ MANDATORY_TABLE_KEYWORDS = {
 SEP = "-" * 70
 
 
-class CalDBVersions(StrEnum):
-    """Tracker for all valid BlackCAT CalDB Versions"""
+class MaskVersions(StrEnum):
+    """Tracker for BlackCAT CalDB Versions in which the Mask changed."""
+
+    DEFAULT = ""
+
+
+class TeldefVersions(StrEnum):
+    """Tracker for BlackCAT CalDB Versions in which the Teldef
+    changed.
+    """
 
     DEFAULT = ""
     V20260614 = "20260614"
+
+
+class BadpixVersions(StrEnum):
+    """Tracker for BlackCAT CalDB Versions in which the Badpix maps
+    changed.
+    """
+
+    DEFAULT = ""
+    V20260423 = "20260423"
+    V20260430 = "20260430"
+    V20260504 = "20260504"
+    V20260508 = "20260508"
+    V20260616 = "20260616"
+    V20260619 = "20260619"
+    V20260625 = "20260625"
+    V20260701 = "20260701"
+    V20260703 = "20260703"
+    V20260722 = "20260722"
+    V20260728 = "20260728"
+    V20260804 = "20260804"
+    V20260811 = "20260811"
+    V20260819 = "20260819"
+    V20260826 = "20260826"
+    V20260831 = "20260831"
+    V20260902 = "20260902"
+    V20260903 = "20260903"
+    V20260904 = "20260904"
+
+
+CALDB_VERSIONS = {
+    ver for ctype in [BadpixVersions, MaskVersions, TeldefVersions] for ver in ctype
+}
 
 
 class GenerateCalDB(ABC):
@@ -49,6 +90,7 @@ class GenerateCalDB(ABC):
 
     CONTENT_DESCRIPTION: str
     DATA_TYPE: str
+    DET_IDS = [0, 1, 2, 3]
 
     def __init__(self, caldb_version: Optional[str] = CURRENT_CALDB_VER):
         """CalDB keyword generator
@@ -62,7 +104,7 @@ class GenerateCalDB(ABC):
                 f"expected caldb_version to be str or None, got {type(caldb_version)}"
             )
         self._caldb_version = caldb_version if caldb_version is not None else ""
-        if self._caldb_version not in CalDBVersions:
+        if self._caldb_version not in CALDB_VERSIONS:
             raise ValueError(f"invalid caldb_version: {self._caldb_version}")
         self._generate_caldb_values()
 
@@ -142,18 +184,21 @@ class GenerateCalDB(ABC):
         return primary_hdu
 
 
+# TODO: Update with new onboard fixes for 0-indexed RAWX/RAWY, plus new offsets
 class GenerateTeldef(GenerateCalDB):
     """Generator for BlackCAT Teldef CalDB file."""
 
     CONTENT_DESCRIPTION = "BlackCAT telescope definition file"
     DATA_TYPE = "teldef"
-    DET_IDS = [0, 1, 2, 3]
     DET_PITCH_M = 40e-6
     NOMINAL_GAP_M = 1788e-6
     NUM_SUBPIXELS = 3
     RAW_SIZE = 550
 
     def __init__(self, caldb_version: Optional[str] = CURRENT_CALDB_VER):
+        self._teldef_version = max(
+            [ver for ver in TeldefVersions if ver <= caldb_version]
+        )
         super().__init__(caldb_version)
 
     @cached_property
@@ -167,11 +212,11 @@ class GenerateTeldef(GenerateCalDB):
         # Dictionary holding the offsets from nominal positions for
         # each of the four detectors.
         det_offsets_dict = {
-            CalDBVersions.DEFAULT: {
+            TeldefVersions.DEFAULT: {
                 "x": np.array([0, 0, 0, 0], dtype=np.float32),
                 "y": np.array([0, 0, 0, 0], dtype=np.float32),
             },
-            CalDBVersions.V20260614: {
+            TeldefVersions.V20260614: {
                 "x": np.array([32.9e-6, 3.1e-6, -232.2e-6, 195.9e-6], dtype=np.float32),
                 "y": np.array(
                     [189.0e-6, -167.7e-6, 96.2e-6, -117.6e-6], dtype=np.float32
@@ -238,14 +283,14 @@ class GenerateTeldef(GenerateCalDB):
         # DETX value at the center of the subpixel column along the
         # outside edge of the focal plane for each detector.
         base_x0 = np.array([self._c, -self._c, -self._c, self._c], dtype=np.float32)
-        return base_x0 + self._det_offsets_dict[self._caldb_version]["x"]
+        return base_x0 + self._det_offsets_dict[self._teldef_version]["x"]
 
     @cached_property
     def _y0s(self) -> npt.NDArray[np.float32]:
         # DETY value at the center of the subpixel row along the
         # outside edge of the focal plane for each detector.
         base_y0 = np.array([self._c, -self._c, self._c, -self._c], dtype=np.float32)
-        return base_y0 + self._det_offsets_dict[self._caldb_version]["y"]
+        return base_y0 + self._det_offsets_dict[self._teldef_version]["y"]
 
     def _generate_caldb_values(self) -> None:
         # Generates the necessary values for a given CalDB given a
@@ -397,6 +442,7 @@ class GenerateCodedMask(GenerateCalDB):
     MASK_SHAPE = [249, 555]
 
     def __init__(self, caldb_version: Optional[str] = CURRENT_CALDB_VER):
+        self._mask_version = max([ver for ver in MaskVersions if ver <= caldb_version])
         super().__init__(caldb_version)
 
     @cached_property
@@ -428,9 +474,7 @@ class GenerateCodedMask(GenerateCalDB):
 
         # Manual fillets
         for xrib_l in [-4, self.MASK_SHAPE[0] // 2, self.MASK_SHAPE[0] + 3]:
-            for yrib_l in [-4, self.MASK_SHAPE[1] + 3] + list(
-                self._yribx.astype(int)
-            ):
+            for yrib_l in [-4, self.MASK_SHAPE[1] + 3] + list(self._yribx.astype(int)):
                 pattern[
                     max(xrib_l - 4, 0) : xrib_l + 5, max(yrib_l - 7, 0) : yrib_l + 8
                 ] = True
@@ -634,7 +678,7 @@ class GenerateCodedMask(GenerateCalDB):
                 ],
             ]
         )
-        mask_ext = fits.PrimaryHDU(
+        mask_ext = fits.ImageHDU(
             data=self._mask_pattern.astype(np.uint8), header=mask_ext_header
         )
 
@@ -663,7 +707,7 @@ class GenerateCodedMask(GenerateCalDB):
                 ],
             ]
         )
-        frame_ext = fits.PrimaryHDU(
+        frame_ext = fits.ImageHDU(
             data=self._frame_pattern.astype(np.uint8), header=frame_ext_header
         )
 
@@ -731,3 +775,212 @@ class GenerateCodedMask(GenerateCalDB):
                 seq[idx] ^= seq[idx - tap]
 
         return seq
+
+
+class GenerateBadpix(GenerateCalDB):
+    """Generator for BlackCAT Badpix CalDB file."""
+
+    CONTENT_DESCRIPTION = "BlackCAT badpix file"
+    DATA_TYPE = "badpix"
+    OGIP_KEYWORDS = {
+        "HDUDOC": ("CAL_GEN_2004_001", "Document describing the format"),
+        "HDUCLASS": ("OGIP", "Conforms to OGIP/GSFC standards"),
+        "HDUCLAS1": ("IMAGE", "Contains array data"),
+        "HDUCLAS2": ("DETMAP", "Histogram is unweighted"),
+    }
+    # TODO: How should we set these up to properly indicate the scaling being in pixel space, not RAWX/RAWY space?
+    REFERENCE_KEYWORDS = {}
+
+    def __init__(self, caldb_version: Optional[str] = CURRENT_CALDB_VER):
+        self._badpix_version = max(
+            [ver for ver in BadpixVersions if ver <= caldb_version]
+        )
+        super().__init__(caldb_version)
+
+    @cached_property
+    def _badpix_date_times(self) -> tuple[str, str]:
+        if self._badpix_path is None:
+            return "2026-02-11", "00:00:00"
+
+        header = fits.getheader(self._badpix_path)
+        yyyy = self._badpix_version[:4]
+        mm = self._badpix_version[4:6]
+        dd = self._badpix_version[6:8]
+        return f"{yyyy}-{mm}-{dd}", header["CVST0001"]
+
+    @cached_property
+    def _badpix_path(self) -> Optional[Path]:
+        if self._badpix_version == "":
+            return None
+        else:
+            return Path(
+                resources.files("bc_caldb.data.badpix_maps").joinpath(
+                    f"badpix_{self._badpix_version}.fits.gz"
+                )
+            )
+
+    @cached_property
+    def _badpix_patterns(
+        self,
+    ) -> tuple[
+        npt.NDArray[np.bool_],
+        npt.NDArray[np.bool_],
+        npt.NDArray[np.bool_],
+        npt.NDArray[np.bool_],
+    ]:
+        if self._badpix_path is None:
+            return (
+                np.zeros((550, 550), dtype=bool),
+                np.zeros((550, 550), dtype=bool),
+                np.zeros((550, 550), dtype=bool),
+                np.zeros((550, 550), dtype=bool),
+            )
+
+        with fits.open(self._badpix_path) as hdul:
+            return (
+                hdul[("badpix", 0)].data.astype(bool),
+                hdul[("badpix", 1)].data.astype(bool),
+                hdul[("badpix", 2)].data.astype(bool),
+                hdul[("badpix", 3)].data.astype(bool),
+            )
+
+    @cached_property
+    def _badpix_reasons(self) -> str:
+        # TODO: Fill out reasons
+        return {
+            BadpixVersions.DEFAULT: "",
+            BadpixVersions.V20260423: "",
+            BadpixVersions.V20260430: "",
+            BadpixVersions.V20260504: "",
+            BadpixVersions.V20260508: "",
+            BadpixVersions.V20260616: "",
+            BadpixVersions.V20260619: "",
+            BadpixVersions.V20260625: "",
+            BadpixVersions.V20260701: "",
+            BadpixVersions.V20260703: "",
+            BadpixVersions.V20260722: "",
+            BadpixVersions.V20260728: "",
+            BadpixVersions.V20260804: "",
+            BadpixVersions.V20260811: "",
+            BadpixVersions.V20260819: "",
+            BadpixVersions.V20260826: "",
+            BadpixVersions.V20260831: "",
+            BadpixVersions.V20260902: "",
+            BadpixVersions.V20260903: "",
+            BadpixVersions.V20260904: "",
+        }
+
+    @cached_property
+    def generation_keywords(self) -> dict[str, Any]:
+        generation_keywords = super().generation_keywords
+        generation_keywords["badpix_0"] = self._badpix_patterns[0]
+        generation_keywords["badpix_1"] = self._badpix_patterns[1]
+        generation_keywords["badpix_2"] = self._badpix_patterns[2]
+        generation_keywords["badpix_3"] = self._badpix_patterns[3]
+
+        return generation_keywords
+
+    def _generate_caldb_values(self) -> None:
+        # Generates the necessary values for a given CalDB given a
+        # specific version.
+        self._commented_dicts = [
+            (
+                {
+                    "CCLS0001": ("BCF", "Dataset is Basic Calibration File"),
+                    "CCNM0001": ("BADPIX", "Type of calibration data"),
+                    "CDTP0001": ("DATA", "Calibration file contains data"),
+                    "CVSD0001": (
+                        self._badpix_date_times[0],
+                        "UTC date when calibration should first be used",
+                    ),
+                    "CVST0001": (
+                        self._badpix_date_times[1],
+                        "UTC time when calibration should first be used",
+                    ),
+                    "CDES0001": (
+                        "BlackCAT global quality map",
+                        "Description",
+                    ),
+                },
+                [],
+            ),
+            (
+                {
+                    "BREASON": (
+                        self._badpix_reasons[self._badpix_version],
+                        "Reason for map transition",
+                    ),
+                    "GOODVAL": (0, "Good pixels have a map value of zero"),
+                },
+                [],
+            ),
+        ]
+
+    def generate_fits_file(
+        self,
+        outdir: Optional[PathLike | str] = None,
+    ) -> fits.HDUList:
+        """Writes the generated CalDB values and badpix patterns
+        to a fits HDUList.
+
+        If outdir is provided, it will write this hdu to a fits file in
+        the provided directory.
+
+        Arguments:
+            outdir: (Optional) Path to the directory to write the CalDB
+            fits file to.
+        """
+        primary_hdu = super().generate_fits_file(outdir=None)
+
+        hdu_list = [primary_hdu]
+        for detid in self.DET_IDS:
+            badpix_ext_header = fits.Header(
+                cards=[
+                    ("EXTNAME", f"BADPIX_{detid}", "Name of the image extension"),
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in self.OGIP_KEYWORDS.items()
+                    ],
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in MANDATORY_KEYWORDS.items()
+                    ],
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in MANDATORY_TABLE_KEYWORDS.items()
+                    ],
+                    ("VERSION", self.version, "Extension version number"),
+                    ("FILENAME", self.outname, "File name"),
+                    (
+                        "CONTENT",
+                        f"BlackCAT badpix pattern for detector {detid}",
+                        "File content",
+                    ),
+                    *[("COMMENT", comment) for comment in self._commented_dicts[0][1]],
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in self._commented_dicts[0][0].items()
+                    ],
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in self.REFERENCE_KEYWORDS.items()
+                    ],
+                    *[("COMMENT", comment) for comment in self._commented_dicts[1][1]],
+                    *[
+                        (key, value, comment)
+                        for key, (value, comment) in self._commented_dicts[1][0].items()
+                    ],
+                ]
+            )
+            badpix_ext = fits.ImageHDU(
+                data=self._badpix_patterns[detid].astype(np.uint8),
+                header=badpix_ext_header,
+            )
+            hdu_list.append(badpix_ext)
+
+        hdul = fits.HDUList(hdu_list)
+
+        if outdir is not None:
+            hdul.writeto(Path(outdir) / self.outname, checksum=True)
+
+        return hdul

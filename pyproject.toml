@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bc_caldb"
-version = "0.2.0"
+version = "0.2.1"
 requires-python = ">=3.12"
 description = "Scripts for running science analysis on level 1 BlackCAT data."
 authors = [
@@ -20,6 +20,11 @@ dependencies = [
     "astropy",
     "matplotlib",
     "numpy",
+]
+
+[dependency-groups]
+dev = [
+    "polars",
 ]
 
 [project.scripts]
