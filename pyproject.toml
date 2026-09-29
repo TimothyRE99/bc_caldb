@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bc_caldb"
-version = "0.2.1"
+version = "0.2.2"
 requires-python = ">=3.12"
 description = "Scripts for running science analysis on level 1 BlackCAT data."
 authors = [

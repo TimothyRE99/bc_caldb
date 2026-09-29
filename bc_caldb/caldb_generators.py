@@ -49,6 +49,7 @@ class TeldefVersions(StrEnum):
 
     DEFAULT = ""
     V20260614 = "20260614"
+    V20260930 = "20260930"
 
 
 class BadpixVersions(StrEnum):
@@ -218,9 +219,11 @@ class GenerateTeldef(GenerateCalDB):
             },
             TeldefVersions.V20260614: {
                 "x": np.array([32.9e-6, 3.1e-6, -232.2e-6, 195.9e-6], dtype=np.float32),
-                "y": np.array(
-                    [189.0e-6, -167.7e-6, 96.2e-6, -117.6e-6], dtype=np.float32
-                ),
+                "y": np.array([189.0e-6, -167.7e-6, 96.2e-6, -117.6e-6], dtype=np.float32),
+            },
+            TeldefVersions.V20260930: {
+                "x": np.array([33.97250673957242e-6, 9.585134644627907e-6, -206.5953795812038e-6, 163.12403964972322e-6], dtype=np.float32),
+                "y": np.array([183.98866171654842e-6, -161.07072601266538e-6, 75.14752100186656e-6, -98.01109328442189e-6], dtype=np.float32),
             },
         }
 
@@ -279,6 +282,14 @@ class GenerateTeldef(GenerateCalDB):
         )
 
     @cached_property
+    def _teldef_date_times(self) -> tuple[str, str]:
+        if self._caldb_version == TeldefVersions.V20260930:
+            return "2026-09-30", "HH:MM:DD"
+
+        # 20260614 uses the same datetimes as default
+        return "2026-02-11", "00:00:00"
+
+    @cached_property
     def _x0s(self) -> npt.NDArray[np.float32]:
         # DETX value at the center of the subpixel column along the
         # outside edge of the focal plane for each detector.
@@ -302,11 +313,11 @@ class GenerateTeldef(GenerateCalDB):
                     "CCNM0001": ("TELDEF", "Type of calibration data"),
                     "CDTP0001": ("DATA", "Calibration file contains data"),
                     "CVSD0001": (
-                        "2026-02-11",
+                        self._teldef_date_times[0],
                         "UTC date when calibration should first be used",
                     ),
                     "CVST0001": (
-                        "00:00:00",
+                        self._teldef_date_times[1],
                         "UTC time when calibration should first be used",
                     ),
                     "CDES0001": ("TELESCOPE DEFINITION FILE", "Description"),
