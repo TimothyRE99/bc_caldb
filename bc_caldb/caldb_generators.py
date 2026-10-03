@@ -49,7 +49,7 @@ class TeldefVersions(StrEnum):
 
     DEFAULT = ""
     V20260614 = "20260614"
-    V20260930 = "20260930"
+    V20261001 = "20261001"
 
 
 class BadpixVersions(StrEnum):
@@ -221,9 +221,9 @@ class GenerateTeldef(GenerateCalDB):
                 "x": np.array([32.9e-6, 3.1e-6, -232.2e-6, 195.9e-6], dtype=np.float32),
                 "y": np.array([189.0e-6, -167.7e-6, 96.2e-6, -117.6e-6], dtype=np.float32),
             },
-            TeldefVersions.V20260930: {
-                "x": np.array([33.97250673957242e-6, 9.585134644627907e-6, -206.5953795812038e-6, 163.12403964972322e-6], dtype=np.float32),
-                "y": np.array([183.98866171654842e-6, -161.07072601266538e-6, 75.14752100186656e-6, -98.01109328442189e-6], dtype=np.float32),
+            TeldefVersions.V20261001: {
+                "x": np.array([27.535099722148427e-6, 19.58959703316536e-6, -212.98178952894986e-6, 165.94339422627007e-6], dtype=np.float32),
+                "y": np.array([178.01260164601305e-6, -152.3995507691704e-6, 80.34798111155557e-6, -105.90666856707347e-6], dtype=np.float32),
             },
         }
 
@@ -283,7 +283,7 @@ class GenerateTeldef(GenerateCalDB):
 
     @cached_property
     def _teldef_date_times(self) -> tuple[str, str]:
-        if self._caldb_version == TeldefVersions.V20260930:
+        if self._caldb_version == TeldefVersions.V20261001:
             return "2026-09-30", "HH:MM:DD"
 
         # 20260614 uses the same datetimes as default
