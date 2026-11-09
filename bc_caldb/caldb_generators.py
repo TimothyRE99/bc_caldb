@@ -227,22 +227,90 @@ class GenerateTeldef(GenerateCalDB):
                     [189.0e-6, -167.7e-6, 96.2e-6, -117.6e-6], dtype=np.float32
                 ),
             },
+            # # NOTE: These are the original results
+            # TeldefVersions.V20261001: {
+            #     "x": np.array(
+            #         [
+            #             33.97250673957242e-6,
+            #             9.585134644627907e-6,
+            #             -206.5953795812038e-6,
+            #             163.12403964972322e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            #     "y": np.array(
+            #         [
+            #             183.98866171654842e-6,
+            #             -161.07072601266538e-6,
+            #             75.14752100186656e-6,
+            #             -98.01109328442189e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            # },
+            # # CORR_ALIGN = np.array([-7150.54168554413e-6, 2506.559189837473e-6], dtype=np.float64)
+            # # NOTE: When not adjusting for better stability, these are the results
+            # TeldefVersions.V20261001: {
+            #     "x": np.array(
+            #         [
+            #             38.05194671602733e-6,
+            #             12.04168683051623e-6,
+            #             -238.7050483271499e-6,
+            #             188.61151133061054e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            #     "y": np.array(
+            #         [
+            #             176.07435771589275e-6,
+            #             -149.44016078308633e-6,
+            #             88.1574006569413e-6,
+            #             -114.79138267390599e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            # },
+            # # CORR_ALIGN = corr_align = np.array([-6992.613123850881e-6, 2559.517739385977e-6], dtype=np.float64)
+            # # NOTE: When using all Crab detections, these are the results
+            # TeldefVersions.V20261001: {
+            #     "x": np.array(
+            #         [
+            #             23.519125046359587e-6,
+            #             18.423130967243935e-6,
+            #             -235.3113859856104e-6,
+            #             193.37536635783533e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            #     "y": np.array(
+            #         [
+            #             186.0915645859813e-6,
+            #             -158.16914099444642e-6,
+            #             77.9580707174985e-6,
+            #             -105.8802119575166e-6,
+            #         ],
+            #         dtype=np.float32,
+            #     ),
+            # },
+            # NOTE: When using only the 15 Crab detections that are 
+            # fully coded + before time drift + no decimation these are
+            # the results.
             TeldefVersions.V20261001: {
                 "x": np.array(
                     [
-                        33.97250673957242e-6,
-                        9.585134644627907e-6,
-                        -206.5953795812038e-6,
-                        163.12403964972322e-6,
+                        20.87355380497335e-6,
+                        5.522677646497216e-6,
+                        -235.50346309954008e-6,
+                        209.10723164821684e-6,
                     ],
                     dtype=np.float32,
                 ),
                 "y": np.array(
                     [
-                        183.98866171654842e-6,
-                        -161.07072601266538e-6,
-                        75.14752100186656e-6,
-                        -98.01109328442189e-6,
+                        180.04708683771204e-6,
+                        -147.55557045310465e-6,
+                        76.82867873050195e-6,
+                        -109.32019511418397e-6,
                     ],
                     dtype=np.float32,
                 ),
